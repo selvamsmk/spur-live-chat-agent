@@ -1,10 +1,9 @@
-import { devToolsMiddleware } from "@ai-sdk/devtools";
-import { openai } from "@ai-sdk/openai";
 import { env } from "@spur-live-chat-agent/env/server";
-import { convertToModelMessages, streamText, wrapLanguageModel } from "ai";
 import { Hono } from "hono";
+import { serve } from "@hono/node-server";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { registerApiRoutes } from "./api";
 
 const app = new Hono();
 
@@ -17,27 +16,11 @@ app.use(
 	}),
 );
 
-app.post("/ai", async (c) => {
-	const body = await c.req.json();
-	const uiMessages = body.messages || [];
-	const model = wrapLanguageModel({
-		model: openai("gpt-4.1-mini"),
-		middleware: devToolsMiddleware(),
-	});
-	const result = streamText({
-		model,
-		messages: await convertToModelMessages(uiMessages),
-		maxOutputTokens: 50,
-	});
-
-	return result.toUIMessageStreamResponse();
-});
-
 app.get("/", (c) => {
 	return c.text("OK");
 });
 
-import { serve } from "@hono/node-server";
+registerApiRoutes(app);
 
 serve(
 	{
