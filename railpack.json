@@ -30,6 +30,9 @@
     "build:web": {
       "inputs": [
         {
+          "step": "install"
+        },
+        {
           "step": "install",
           "include": ["package.json", "pnpm-lock.yaml", "apps/web/**", "packages/**"]
         }
@@ -43,6 +46,9 @@
     },
     "build:server": {
       "inputs": [
+        {
+          "step": "prebuild-db"
+        },
         {
           "step": "prebuild-db",
           "include": ["package.json", "pnpm-lock.yaml", "apps/server/**", "packages/**"]
@@ -61,9 +67,9 @@
     "startCommand": "node apps/server/dist/index.mjs",
     "inputs": [
       {
-        "step": "build",
-        "include": ["apps/server/dist/**", "apps/server/package.json"]
-      },
+          "step": "build:server",
+          "include": ["apps/server/dist/**", "apps/server/package.json"]
+        },
       {
         "step": "install",
         "include": ["node_modules/.bin"]
