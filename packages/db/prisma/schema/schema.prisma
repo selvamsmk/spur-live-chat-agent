@@ -41,3 +41,16 @@ enum MessageRole {
   user
   ai
 }
+
+// Represents frequently asked questions for the store
+// Used to provide contextual information to the AI agent
+model StoreFaq {
+  id        String   @id @default(cuid())
+  category  String // e.g. "shipping", "returns", "support"
+  question  String
+  answer    String
+  createdAt DateTime @default(now())
+
+  @@unique([category, question])
+  @@map("store_faqs")
+}

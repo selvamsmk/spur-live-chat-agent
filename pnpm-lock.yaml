@@ -66,6 +66,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.14.4
         version: 1.19.7(hono@4.11.3)
+      '@spur-live-chat-agent/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@spur-live-chat-agent/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -261,6 +264,9 @@ importers:
       prisma:
         specifier: ^7.1.0
         version: 7.2.0(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.0
       typescript:
         specifier: 'catalog:'
         version: 5.9.3

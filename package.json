@@ -18,7 +18,8 @@
 		"db:studio": "turbo -F @spur-live-chat-agent/db db:studio",
 		"db:generate": "turbo -F @spur-live-chat-agent/db db:generate",
 		"db:migrate": "turbo -F @spur-live-chat-agent/db db:migrate",
-		"db:local": "turbo -F @spur-live-chat-agent/db db:local"
+		"db:local": "turbo -F @spur-live-chat-agent/db db:local",
+		"db:seed": "turbo -F @spur-live-chat-agent/db db:seed"
 	},
 	"dependencies": {
 		"dotenv": "catalog:",

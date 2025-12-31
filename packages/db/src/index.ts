@@ -3,7 +3,7 @@ import { env } from "@spur-live-chat-agent/env/server";
 
 import { PrismaClient } from "../prisma/generated/client";
 
-const adapter = new PrismaLibSql({
+export const adapter = new PrismaLibSql({
 	url: env.DATABASE_URL,
 });
 
