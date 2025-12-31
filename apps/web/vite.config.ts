@@ -14,6 +14,8 @@ export default defineConfig({
 	},
 	server: {
 		port: 3001,
+		host: true,
+		allowedHosts: ["web-production-86f7f.up.railway.app"],
 	},
 
 	preview: {
