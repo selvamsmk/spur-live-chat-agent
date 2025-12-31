@@ -4,7 +4,7 @@
   "steps": {
     "install": {
       "commands": [
-        "install"
+        "pnpm install"
       ]
     },
     "prebuild-db": {
