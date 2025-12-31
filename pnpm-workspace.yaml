@@ -1,0 +1,17 @@
+packages:
+  - apps/*
+  - packages/*
+
+catalog:
+  '@prisma/client': ^7.1.0
+  '@types/node': ^22.13.14
+  ai: ^6.0.3
+  dotenv: ^17.2.2
+  typescript: ^5
+  zod: ^4.1.13
+
+onlyBuiltDependencies:
+  - '@prisma/engines'
+  - esbuild
+  - msw
+  - prisma

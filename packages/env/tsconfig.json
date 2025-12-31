@@ -1,0 +1,3 @@
+{
+	"extends": "@spur-live-chat-agent/config/tsconfig.base.json"
+}

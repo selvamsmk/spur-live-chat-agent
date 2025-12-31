@@ -1,0 +1,31 @@
+{
+	"name": "@spur-live-chat-agent/db",
+	"type": "module",
+	"exports": {
+		".": {
+			"default": "./src/index.ts"
+		},
+		"./*": {
+			"default": "./src/*.ts"
+		}
+	},
+	"scripts": {
+		"db:local": "turso dev --db-file local.db",
+		"db:push": "prisma db push",
+		"db:generate": "prisma generate",
+		"db:migrate": "prisma migrate dev",
+		"db:studio": "prisma studio"
+	},
+	"devDependencies": {
+		"prisma": "^7.1.0",
+		"typescript": "catalog:",
+		"@spur-live-chat-agent/config": "workspace:*"
+	},
+	"dependencies": {
+		"@prisma/client": "catalog:",
+		"@prisma/adapter-libsql": "^7.1.0",
+		"dotenv": "catalog:",
+		"zod": "catalog:",
+		"@spur-live-chat-agent/env": "workspace:*"
+	}
+}
