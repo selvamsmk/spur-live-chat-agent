@@ -1,8 +1,7 @@
-import { devToolsMiddleware } from "@ai-sdk/devtools";
-import { openai } from "@ai-sdk/openai";
 import prisma from "@spur-live-chat-agent/db";
-import { convertToModelMessages, streamText, wrapLanguageModel } from "ai";
+import { convertToModelMessages } from "ai";
 import { Hono } from "hono";
+import { generateReply, LLMError } from "./llm";
 import {
 	conversationListCacheKey,
 	conversationMessagesCacheKey,
@@ -62,36 +61,30 @@ export function registerApiRoutes(app: Hono) {
 				}
 			}
 
-			// Stream AI response
-			const model = wrapLanguageModel({
-				model: openai("gpt-4.1-mini"),
-				middleware: devToolsMiddleware(),
-			});
+			// Convert UI messages to model format and generate reply
+			const modelMessages = await convertToModelMessages(uiMessages);
+			const result = await generateReply(modelMessages);
 
-			const result = streamText({
-				model,
-				messages: await convertToModelMessages(uiMessages),
-				maxOutputTokens: 50,
-				onFinish: async (event) => {
-					// Save assistant message
-					await prisma.message.create({
-						data: {
-							conversationId: currentConversationId,
-							role: "ai",
-							content: event.text,
-						},
-					});
+			// Setup callback to save assistant message after streaming completes
+			result.onFinish(async (event) => {
+				// Save assistant message
+				await prisma.message.create({
+					data: {
+						conversationId: currentConversationId,
+						role: "ai",
+						content: event.text,
+					},
+				});
 
-					// Invalidate caches after new message is saved
-					const invalidationKeys: string[] = [];
-					if (sessionId) {
-						invalidationKeys.push(conversationListCacheKey(sessionId));
-					}
-					invalidationKeys.push(
-						conversationMessagesCacheKey(currentConversationId),
-					);
-					await deleteCached(...invalidationKeys);
-				},
+				// Invalidate caches after new message is saved
+				const invalidationKeys: string[] = [];
+				if (sessionId) {
+					invalidationKeys.push(conversationListCacheKey(sessionId));
+				}
+				invalidationKeys.push(
+					conversationMessagesCacheKey(currentConversationId),
+				);
+				await deleteCached(...invalidationKeys);
 			});
 
 			// Create the streaming response and add conversationId header
@@ -100,7 +93,26 @@ export function registerApiRoutes(app: Hono) {
 			return response;
 		} catch (error) {
 			console.error("Error in POST /api/ai:", error);
-			return c.json({ error: "Internal server error" }, 500);
+
+			// Handle LLM-specific errors with user-friendly messages
+			if (error instanceof LLMError) {
+				return c.json(
+					{
+						error: error.userMessage,
+						code: error.code,
+					},
+					error.code === "RATE_LIMIT" ? 429 : 500,
+				);
+			}
+
+			// Generic error fallback
+			return c.json(
+				{
+					error:
+						"We encountered an issue processing your request. Please try again.",
+				},
+				500,
+			);
 		}
 	});
 

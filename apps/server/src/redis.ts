@@ -1,4 +1,5 @@
 import Redis from "ioredis";
+import { env } from "@spur-live-chat-agent/env/server";
 
 let redis: Redis | null = null;
 let redisAvailable = false;
@@ -10,7 +11,7 @@ let redisAvailable = false;
 export function getRedisClient(): Redis | null {
 	if (redis) return redis;
 
-	const redisUrl = process.env.REDIS_URL;
+	const redisUrl = env.REDIS_URL;
 	if (!redisUrl) {
 		console.log("[Redis] REDIS_URL not configured, caching disabled");
 		return null;

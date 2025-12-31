@@ -4,6 +4,7 @@ import { serve } from "@hono/node-server";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { registerApiRoutes } from "./api";
+import { loadStoreFaqs } from "./faq-loader";
 
 const app = new Hono();
 
@@ -11,7 +12,7 @@ app.use(logger());
 app.use(
 	"/*",
 	cors({
-		origin: env.CORS_ORIGIN,
+		origin: env.CORS_ORIGIN || "",
 		allowMethods: ["GET", "POST", "OPTIONS"],
 	}),
 );
@@ -21,6 +22,9 @@ app.get("/", (c) => {
 });
 
 registerApiRoutes(app);
+
+// Load FAQs into memory before starting the server
+await loadStoreFaqs();
 
 serve(
 	{

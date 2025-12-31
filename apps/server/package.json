@@ -19,7 +19,8 @@
 		"zod": "catalog:",
 		"ioredis": "^5.4.2",
 		"@spur-live-chat-agent/env": "workspace:*",
-		"@spur-live-chat-agent/db": "workspace:*"
+		"@spur-live-chat-agent/db": "workspace:*",
+    "@spur-live-chat-agent/contracts": "workspace:*"
 	},
 	"devDependencies": {
 		"tsx": "^4.19.2",

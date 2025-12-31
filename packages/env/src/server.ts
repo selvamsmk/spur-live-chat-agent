@@ -5,8 +5,9 @@ import { z } from "zod";
 export const env = createEnv({
 	server: {
 		DATABASE_URL: z.string().min(1),
-		CORS_ORIGIN: z.url(),
-		OPENAI_API_KEY: z.string(),
+		CORS_ORIGIN: z.url().optional(),
+		OPENAI_API_KEY: z.string().min(1),
+		REDIS_URL: z.string().optional(),
 		NODE_ENV: z
 			.enum(["development", "production", "test"])
 			.default("development"),

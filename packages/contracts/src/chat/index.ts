@@ -83,4 +83,17 @@ export const MessageListResponseSchema = z.array(MessageDTOSchema);
 
 export type MessageListResponse = z.infer<typeof MessageListResponseSchema>;
 
+/**
+ * Finish event when a chat completion completes
+ */
+export interface ChatFinishEvent {
+	text: string;
+	finishReason?: string;
+	usage?: {
+		promptTokens: number;
+		completionTokens: number;
+		totalTokens: number;
+	};
+}
+
 export * from "./converters.js";
