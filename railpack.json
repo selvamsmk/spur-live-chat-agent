@@ -1,0 +1,73 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "provider": "node",
+  "caches": {
+    "pnpm-store": {
+      "directory": "/root/.pnpm-store",
+      "type": "shared"
+    }
+  },
+  "steps": {
+    "install": {
+      "commands": [
+        "pnpm install --frozen-lockfile"
+      ],
+      "caches": ["pnpm-store"]
+    },
+    "prebuild-db": {
+      "inputs": [
+        {
+          "step": "install",
+          "include": ["package.json", "pnpm-lock.yaml", "apps/**", "packages/**"]
+        }
+      ],
+      "commands": [
+        { "cmd": "pnpm db:push", "customName": "Run pnpm db:push" },
+        { "cmd": "pnpm db:generate", "customName": "Run pnpm db:generate" },
+        { "cmd": "pnpm db:seed", "customName": "Run pnpm db:seed" }
+      ]
+    },
+    "build:web": {
+      "inputs": [
+        {
+          "step": "install",
+          "include": ["package.json", "pnpm-lock.yaml", "apps/web/**", "packages/**"]
+        }
+      ],
+      "commands": [
+        { "cmd": "pnpm --filter web build", "customName": "Build web" }
+      ],
+      "deployOutputs": [
+        { "include": ["apps/web/dist/**", "apps/web/package.json"] }
+      ]
+    },
+    "build:server": {
+      "inputs": [
+        {
+          "step": "prebuild-db",
+          "include": ["package.json", "pnpm-lock.yaml", "apps/server/**", "packages/**"]
+        }
+      ],
+      "commands": [
+        { "cmd": "pnpm --filter server build", "customName": "Build server" }
+      ],
+      "deployOutputs": [
+        { "include": ["apps/server/dist/**", "apps/server/package.json"] }
+      ]
+    }
+  },
+  "deploy": {
+    "base": { "image": "ghcr.io/railwayapp/railpack-runtime:latest" },
+    "startCommand": "node apps/server/dist/index.mjs",
+    "inputs": [
+      {
+        "step": "build",
+        "include": ["apps/server/dist/**", "apps/server/package.json"]
+      },
+      {
+        "step": "install",
+        "include": ["node_modules/.bin"]
+      }
+    ]
+  }
+}
