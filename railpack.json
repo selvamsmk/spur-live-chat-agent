@@ -17,6 +17,9 @@
     "prebuild-db": {
       "inputs": [
         {
+          "step": "install"
+        },
+        {
           "step": "install",
           "include": ["package.json", "pnpm-lock.yaml", "apps/**", "packages/**"]
         }
