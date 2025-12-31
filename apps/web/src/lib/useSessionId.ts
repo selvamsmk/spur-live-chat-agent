@@ -11,7 +11,7 @@ export function useSessionId(): string {
 
 		// If no session ID exists, generate a new one
 		if (!id) {
-			id = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+			id = `session_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 			localStorage.setItem(SESSION_ID_KEY, id);
 		}
 

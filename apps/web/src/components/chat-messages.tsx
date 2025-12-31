@@ -16,9 +16,10 @@ interface ChatMessagesProps {
 	messages: ChatMessage[];
 	status: string;
 	hasError?: boolean;
+	isTyping?: boolean;
 }
 
-export function ChatMessages({ messages, status, hasError }: ChatMessagesProps) {
+export function ChatMessages({ messages, status, hasError, isTyping = false }: ChatMessagesProps) {
 	const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
 	// Auto-scroll to the latest message whenever messages change
@@ -29,7 +30,7 @@ export function ChatMessages({ messages, status, hasError }: ChatMessagesProps) 
 				block: "end",
 			});
 		}
-	}, [messages, status]);
+	}, [messages, status, isTyping]);
 
 	return (
 		<div className="space-y-4">
@@ -55,10 +56,15 @@ export function ChatMessages({ messages, status, hasError }: ChatMessagesProps) 
 					</div>
 				</div>
 			))}
-			{status === "submitted" && (
+			{isTyping && (
 				<div className="flex justify-start">
 					<div className="bg-gray-200 dark:bg-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-white">
-						Thinking...
+						<span className="inline-flex items-center gap-1">
+							Agent is typing
+							<span className="animate-pulse">.</span>
+							<span className="animate-pulse" style={{ animationDelay: '0.2s' }}>.</span>
+							<span className="animate-pulse" style={{ animationDelay: '0.4s' }}>.</span>
+						</span>
 					</div>
 				</div>
 			)}

@@ -6,4 +6,9 @@ export default defineConfig({
 	outDir: "./dist",
 	clean: true,
 	noExternal: [/@spur-live-chat-agent\/.*/],
+	external: [
+		"@prisma/client",
+		"@prisma/adapter-libsql",
+		"@libsql/client",
+	],
 });

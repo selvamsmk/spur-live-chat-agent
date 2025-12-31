@@ -3,7 +3,7 @@ packages:
   - packages/*
 
 catalog:
-  '@prisma/client': ^7.1.0
+  '@prisma/client': ^7.2.0
   '@types/node': ^22.13.14
   ai: ^6.0.3
   dotenv: ^17.2.2

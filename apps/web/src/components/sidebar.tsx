@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Sidebar, SidebarItem, SidebarItemGroup, SidebarItems } from "flowbite-react";
 import { HiPlus, HiChatBubbleLeftRight } from "react-icons/hi2";
 import { useSessionId } from "@/lib/useSessionId";
+import { getApiUrl } from "@/lib/api-client";
 
 interface Conversation {
 	id: string;
@@ -24,7 +25,7 @@ export function ChatSidebar() {
 		queryKey: ["conversations", sessionId],
 		queryFn: async () => {
 			const response = await fetch(
-				`/api/conversations?sessionId=${encodeURIComponent(sessionId)}`
+				getApiUrl(`/api/conversations?sessionId=${encodeURIComponent(sessionId)}`)
 			);
 			if (!response.ok) throw new Error("Failed to fetch conversations");
 			return response.json() as Promise<Conversation[]>;

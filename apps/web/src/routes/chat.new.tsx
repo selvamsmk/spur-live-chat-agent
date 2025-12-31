@@ -4,7 +4,10 @@ import { DefaultChatTransport } from "ai";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSessionId } from "@/lib/useSessionId";
+import { hideTypingIndicator, validateAndTruncateMessage, MAX_MESSAGE_LENGTH } from "@/lib/chat-utils";
+import { getApiUrl } from "@/lib/api-client";
 import { ChatMessages } from "@/components/chat-messages";
+import { toast } from "sonner";
 
 import type { ConversationListResponse } from "@spur-live-chat-agent/contracts";
 
@@ -18,17 +21,29 @@ function NewChatComponent() {
 	const queryClient = useQueryClient();
 	const [input, setInput] = useState("");
 	const [conversationId, setConversationId] = useState<string | null>(null);
-	const inputRef = useRef<HTMLInputElement | null>(null);
+	const [isTyping, setIsTyping] = useState(false);
+	const inputRef = useRef<HTMLTextAreaElement | null>(null);
+	const typingStartTimeRef = useRef<number | null>(null);
+
+	// Auto-resize textarea
+	const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+		setInput(e.target.value);
+		if (inputRef.current) {
+			inputRef.current.style.height = "auto";
+			inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 96)}px`;
+		}
+	};
 
 	const { messages, sendMessage, status, error, clearError, stop } = useChat({
 		transport: new DefaultChatTransport({
-			api: "/api/ai",
+			api: getApiUrl("/api/ai"),
 			body: { sessionId },
 		}),
 		onFinish: ({ message, isError }) => {
+			hideTypingIndicator(setIsTyping, typingStartTimeRef);
 			if (!isError && message.role === "assistant" && !conversationId) {
 				// After first message, fetch conversations to get the new conversationId
-				fetch(`/api/conversations?sessionId=${encodeURIComponent(sessionId)}`)
+				fetch(getApiUrl(`/api/conversations?sessionId=${encodeURIComponent(sessionId)}`))
 					.then((res) => res.json() as Promise<ConversationListResponse>)
 					.then((convs) => {
 						// Update TanStack Query cache so sidebar updates immediately
@@ -50,8 +65,11 @@ function NewChatComponent() {
 				inputRef.current.focus();
 			}
 		},
-		onError: () => {
-			// Error is automatically set in the error state
+		onError: (error) => {
+			hideTypingIndicator(setIsTyping, typingStartTimeRef);
+			toast.error("Failed to send message", {
+				description: error.message || "Please try again",
+			});
 		},
 	});
 
@@ -63,12 +81,17 @@ function NewChatComponent() {
 
 		if (error) clearError();
 
+		// Validate and truncate message
+		const truncatedMessage = validateAndTruncateMessage(input.trim());
+
 		// If this is the first message, use it to generate conversationId
 		if (!conversationId && messages.length === 0) {
 			try {
+				typingStartTimeRef.current = Date.now();
+				setIsTyping(true);
 				// Send message and wait for response to get conversationId
 				await sendMessage(
-					{ text: input },
+					{ text: truncatedMessage },
 					{
 						body: {
 							sessionId,
@@ -77,12 +100,27 @@ function NewChatComponent() {
 				);
 				
 				setInput("");
+				// Reset textarea height
+				if (inputRef.current) {
+					inputRef.current.style.height = "auto";
+				}
 			} catch (err) {
+				hideTypingIndicator(setIsTyping, typingStartTimeRef);
+				const errorMessage = err instanceof Error ? err.message : "Unknown error";
+				toast.error("Failed to send message", {
+					description: errorMessage,
+				});
 				console.error("Error sending message:", err);
 			}
 		} else {
-			await sendMessage({ text: input });
+			typingStartTimeRef.current = Date.now();
+			setIsTyping(true);
+			await sendMessage({ text: truncatedMessage });
 			setInput("");
+			// Reset textarea height
+			if (inputRef.current) {
+				inputRef.current.style.height = "auto";
+			}
 		}
 	};
 
@@ -113,36 +151,52 @@ function NewChatComponent() {
                         messages={messages as any}
                         status={status}
                         hasError={!!error}
+                        isTyping={isTyping}
                     />
                 )}
             </div>
             <div className="border-t p-4">
-                <form onSubmit={handleSubmit} className="flex gap-2">
-                    <input
-                        type="text"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        placeholder="Type your message..."
-                        ref={inputRef}
-                        disabled={status !== "ready" || !sessionId}
-                        className="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-800 dark:text-white dark:border-gray-700 disabled:opacity-50"
-                    />
-                    {status === "streaming" || status === "submitted" ? (
-                        <button
-                            type="button"
-                            onClick={stop}
-                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                        >
-                            Stop
-                        </button>
-                    ) : (
-                        <button
-                            type="submit"
-                            disabled={status !== "ready" || !input.trim() || !sessionId}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                        >
-                            Send
-                        </button>
+                <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+                    <div className="flex gap-2 items-end">
+                        <textarea
+                            value={input}
+                            onChange={handleInputChange}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSubmit(e);
+                                }
+                            }}
+                            placeholder="Type your message..."
+                            ref={inputRef}
+                            rows={1}
+                            disabled={status !== "ready" || !sessionId}
+                            className="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-800 dark:text-white dark:border-gray-700 disabled:opacity-50 resize-none overflow-y-auto"
+                            style={{ maxHeight: "96px" }}
+                            maxLength={MAX_MESSAGE_LENGTH}
+                        />
+                        {status === "streaming" || status === "submitted" ? (
+                            <button
+                                type="button"
+                                onClick={stop}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 shrink-0"
+                            >
+                                Stop
+                            </button>
+                        ) : (
+                            <button
+                                type="submit"
+                                disabled={status !== "ready" || !input.trim() || !sessionId}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 shrink-0"
+                            >
+                                Send
+                            </button>
+                        )}
+                    </div>
+                    {input.length > 0 && (
+                        <div className="text-xs text-right text-gray-500 dark:text-gray-400">
+                            {input.length}/{MAX_MESSAGE_LENGTH} characters
+                        </div>
                     )}
                 </form>
             </div>
