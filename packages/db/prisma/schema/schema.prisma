@@ -1,10 +1,43 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated"
+  provider     = "prisma-client"
+  output       = "../generated"
   moduleFormat = "esm"
-  runtime = "nodejs"
+  runtime      = "nodejs"
 }
 
 datasource db {
   provider = "sqlite"
+}
+
+// Represents a chat conversation thread
+// Uses CUID for IDs to avoid SQLite integer limitations
+model Conversation {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  sessionId String? // Optional: links multiple conversations to a session/user
+
+  // One-to-many relationship with messages
+  messages Message[]
+}
+
+// Represents a single message within a conversation
+// Stores both user and AI messages in a single table
+model Message {
+  id             String      @id @default(cuid())
+  conversationId String
+  role           MessageRole // "user" or "ai"
+  content        String // Message body/text
+  createdAt      DateTime    @default(now())
+
+  // Foreign key relationship to Conversation
+  // Cascade delete: removes messages when conversation is deleted
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId]) // Index for fast message lookups by conversation
+}
+
+// Enum for message roles: distinguishes between user and AI messages
+enum MessageRole {
+  user
+  ai
 }
