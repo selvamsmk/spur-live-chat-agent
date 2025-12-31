@@ -1,18 +1,11 @@
 {
   "$schema": "https://schema.railpack.com",
   "provider": "node",
-  "caches": {
-    "pnpm-store": {
-      "directory": "/root/.pnpm-store",
-      "type": "shared"
-    }
-  },
   "steps": {
     "install": {
       "commands": [
-        "pnpm install --frozen-lockfile"
-      ],
-      "caches": ["pnpm-store"]
+        "install"
+      ]
     },
     "prebuild-db": {
       "inputs": [
