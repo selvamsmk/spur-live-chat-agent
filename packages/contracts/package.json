@@ -1,0 +1,27 @@
+{
+	"name": "@spur-live-chat-agent/contracts",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": {
+			"default": "./src/index.ts"
+		},
+		"./chat": {
+			"default": "./src/chat/index.ts"
+		},
+		"./common": {
+			"default": "./src/common/index.ts"
+		},
+		"./errors": {
+			"default": "./src/errors/index.ts"
+		}
+	},
+	"dependencies": {
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"typescript": "catalog:",
+		"@spur-live-chat-agent/config": "workspace:*"
+	}
+}
