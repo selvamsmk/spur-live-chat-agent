@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Suspense, useActionState } from "react";
+import { Suspense, useActionState, useEffect, useRef } from "react";
 import { useSessionId } from "@/lib/useSessionId";
+import { ChatMessages } from "@/components/chat-messages";
 
 import type { MessageListResponse } from "@spur-live-chat-agent/contracts";
 import { convertMessageDTOsToChatMessages } from "@spur-live-chat-agent/contracts";
@@ -56,6 +57,7 @@ function ChatContent({
 	initialMessages: MessageListResponse;
 }) {
 	const sessionId = useSessionId();
+	const inputRef = useRef<HTMLInputElement | null>(null);
 
 	const {
 		messages,
@@ -75,6 +77,10 @@ function ChatContent({
 			}
 			if (isAbort) {
 				console.log("Message streaming was aborted");
+			}
+			// Ensure the input is focused again after a response
+			if (!isError && !isAbort && inputRef.current) {
+				inputRef.current.focus();
 			}
 		},
 	});
@@ -107,45 +113,21 @@ function ChatContent({
 		null as string | null,
 	);
 
+	// Keep the input focused, especially after an AI response finishes
+	useEffect(() => {
+		if (status === "ready" && inputRef.current) {
+			inputRef.current.focus();
+		}
+	}, [status]);
+
 	return (
 		<div className="flex flex-1 flex-col overflow-hidden">
-			<div className="flex-1 overflow-y-auto p-4 space-y-4">
-				{messages.map((message) => (
-					<div
-						key={message.id}
-						className={`flex ${
-							message.role === "user"
-								? "justify-end"
-								: "justify-start"
-						}`}
-					>
-						<div
-							className={`max-w-xs lg:max-w-md rounded-lg px-4 py-2 ${
-								message.role === "user"
-									? "bg-blue-600 text-white"
-									: "bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white"
-							}`}
-						>
-							{message.parts.map((part, index) =>
-								part.type === "text" ? (
-									<span key={index}>{part.text}</span>
-								) : null
-							)}
-						</div>
-					</div>
-				))}
-				{status === "submitted" && (
-					<div className="flex justify-start">
-						<div className="bg-gray-200 dark:bg-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-white">
-							Thinking...
-						</div>
-					</div>
-				)}
-				{actionError && (
-					<div className="text-red-600 dark:text-red-400 text-sm">
-						Something went wrong. Please try again.
-					</div>
-				)}
+			<div className="flex-1 overflow-y-auto p-4">
+				<ChatMessages
+					messages={messages as any}
+					status={status}
+					hasError={!!actionError}
+				/>
 			</div>
 
 			<div className="border-t p-4">
@@ -154,6 +136,7 @@ function ChatContent({
 						type="text"
 						name="message"
 						placeholder="Type your message..."
+						ref={inputRef}
 						disabled={status !== "ready" || isPending}
 						className="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-800 dark:text-white dark:border-gray-700 disabled:opacity-50"
 					/>

@@ -17,6 +17,7 @@
 		"@ai-sdk/devtools": "^0.0.2",
 		"dotenv": "catalog:",
 		"zod": "catalog:",
+		"ioredis": "^5.4.2",
 		"@spur-live-chat-agent/env": "workspace:*",
 		"@spur-live-chat-agent/db": "workspace:*"
 	},

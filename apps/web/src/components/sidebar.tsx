@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Sidebar, SidebarItem, SidebarItemGroup, SidebarItems } from "flowbite-react";
 import { HiPlus, HiChatBubbleLeftRight } from "react-icons/hi2";
@@ -13,6 +13,12 @@ interface Conversation {
 export function ChatSidebar() {
 	const navigate = useNavigate();
 	const sessionId = useSessionId();
+	const routerState = useRouterState();
+	const pathname = routerState.location.pathname;
+
+	const isNewChat = pathname === "/chat/new";
+	const activeConversationMatch = pathname.match(/^\/chat\/(.+)$/);
+	const activeConversationId = activeConversationMatch?.[1] ?? null;
 
 	const { data: conversations = [] } = useQuery({
 		queryKey: ["conversations", sessionId],
@@ -34,6 +40,7 @@ export function ChatSidebar() {
 						onClick={() => navigate({ to: "/chat/new" })}
 						icon={HiPlus}
 						className="cursor-pointer"
+						active={isNewChat}
 					>
 						New chat
 					</SidebarItem>
@@ -52,6 +59,7 @@ export function ChatSidebar() {
 								}
 								icon={HiChatBubbleLeftRight}
 								className="cursor-pointer truncate"
+								active={activeConversationId === conv.id}
 								title={conv.firstMessage}
 							>
 								<span className="truncate">

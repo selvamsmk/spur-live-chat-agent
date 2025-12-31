@@ -3,6 +3,17 @@ import { openai } from "@ai-sdk/openai";
 import prisma from "@spur-live-chat-agent/db";
 import { convertToModelMessages, streamText, wrapLanguageModel } from "ai";
 import { Hono } from "hono";
+import {
+	conversationListCacheKey,
+	conversationMessagesCacheKey,
+	deleteCached,
+	getCached,
+	getRedisClient,
+	setCached,
+} from "./redis";
+
+// Initialize Redis client on module load
+getRedisClient();
 
 export function registerApiRoutes(app: Hono) {
 	app.post("/api/ai", async (c) => {
@@ -70,6 +81,16 @@ export function registerApiRoutes(app: Hono) {
 							content: event.text,
 						},
 					});
+
+					// Invalidate caches after new message is saved
+					const invalidationKeys: string[] = [];
+					if (sessionId) {
+						invalidationKeys.push(conversationListCacheKey(sessionId));
+					}
+					invalidationKeys.push(
+						conversationMessagesCacheKey(currentConversationId),
+					);
+					await deleteCached(...invalidationKeys);
 				},
 			});
 
@@ -87,6 +108,17 @@ export function registerApiRoutes(app: Hono) {
 		try {
 			const sessionId = c.req.query("sessionId");
 
+			// Try cache first if sessionId is provided
+			if (sessionId) {
+				const cacheKey = conversationListCacheKey(sessionId);
+				const cached = await getCached<any[]>(cacheKey);
+				if (cached) {
+					c.header("X-Cache", "HIT");
+					return c.json(cached);
+				}
+			}
+
+			// Cache miss or no sessionId - fetch from database
 			const conversations = await prisma.conversation.findMany({
 				where: sessionId ? { sessionId } : {},
 				include: {
@@ -103,6 +135,12 @@ export function registerApiRoutes(app: Hono) {
 				firstMessage: conv.messages[0]?.content.slice(0, 100) || "(no messages)",
 			}));
 
+			// Cache result if sessionId is provided
+			if (sessionId) {
+				await setCached(conversationListCacheKey(sessionId), result, 90);
+			}
+
+			c.header("X-Cache", "MISS");
 			return c.json(result);
 		} catch (error) {
 			console.error("Error in GET /api/conversations:", error);
@@ -114,6 +152,15 @@ export function registerApiRoutes(app: Hono) {
 		try {
 			const id = c.req.param("id");
 
+			// Try cache first
+			const cacheKey = conversationMessagesCacheKey(id);
+			const cached = await getCached<any[]>(cacheKey);
+			if (cached) {
+				c.header("X-Cache", "HIT");
+				return c.json(cached);
+			}
+
+			// Cache miss - fetch from database
 			const conversation = await prisma.conversation.findUnique({
 				where: { id },
 			});
@@ -127,6 +174,10 @@ export function registerApiRoutes(app: Hono) {
 				orderBy: { createdAt: "asc" },
 			});
 
+			// Cache result
+			await setCached(cacheKey, messages, 90);
+
+			c.header("X-Cache", "MISS");
 			return c.json(messages);
 		} catch (error) {
 			console.error("Error in GET /api/conversations/:id/messages:", error);
