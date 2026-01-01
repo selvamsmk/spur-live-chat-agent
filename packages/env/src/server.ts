@@ -1,4 +1,7 @@
-import "dotenv/config";
+if (process.env.NODE_ENV !== "production") {
+	await import("dotenv/config");
+}
+
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
