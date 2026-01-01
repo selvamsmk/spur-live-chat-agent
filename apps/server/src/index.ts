@@ -57,12 +57,15 @@ if (IS_PROD) {
 // Load FAQs into memory before starting the server
 await loadStoreFaqs();
 
+const PORT = Number(process.env.PORT) || 3000;
+
 serve(
-	{
-		fetch: app.fetch,
-		port: 3000,
-	},
-	(info) => {
-		console.log(`Server is running on http://localhost:${info.port}`);
-	},
+  {
+    fetch: app.fetch,
+    port: PORT,
+    hostname: "0.0.0.0",
+  },
+  (info) => {
+    console.log(`Server is running on http://0.0.0.0:${info.port}`);
+  }
 );
