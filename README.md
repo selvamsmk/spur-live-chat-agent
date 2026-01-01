@@ -105,6 +105,7 @@ spur-live-chat-agent/
 │   ├── env/        # Typed environment configuration
 │   ├── contracts/  # Shared DTOs / API contracts
 │   └── config/     # Shared TS config
+```
 
 ## LLM Design & Prompting Strategy
 
