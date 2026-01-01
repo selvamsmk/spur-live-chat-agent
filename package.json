@@ -10,6 +10,7 @@
 		"check": "biome check --write .",
 		"dev": "turbo dev",
 		"build": "turbo build",
+		"start": "cd apps/server && pnpm run start",
 		"check-types": "turbo check-types",
 		"dev:native": "turbo -F native dev",
 		"dev:web": "turbo -F web dev",

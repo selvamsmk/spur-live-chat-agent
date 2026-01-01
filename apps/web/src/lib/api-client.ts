@@ -8,10 +8,14 @@ import { env } from "@spur-live-chat-agent/env/web";
  * @returns The full API URL
  */
 export function getApiUrl(path: string): string {
-	const serverUrl = env.VITE_SERVER_URL;
-	
-    // Remove trailing slash from server URL and leading slash from path if present
-    const baseUrl = serverUrl.replace(/\/$/, "");
+    // Prefer an explicit VITE_SERVER_URL if provided (for dev or special deployments).
+    // Otherwise use the current origin so the client calls the same host that served the app.
+    const explicit = env.VITE_SERVER_URL;
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+
+    const base = (explicit && explicit.trim() !== "") ? explicit : origin;
+    const baseUrl = base ? base.replace(/\/$/, "") : "";
     const apiPath = path.startsWith("/") ? path : `/${path}`;
-    return `${baseUrl}${apiPath}`;
+
+    return baseUrl ? `${baseUrl}${apiPath}` : apiPath;
 }

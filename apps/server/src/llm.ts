@@ -1,4 +1,3 @@
-import { devToolsMiddleware } from "@ai-sdk/devtools";
 import { openai } from "@ai-sdk/openai";
 import type { ModelMessage } from "ai";
 import { streamText, wrapLanguageModel } from "ai";
@@ -102,10 +101,25 @@ export async function generateReply(
 		// Prepare messages with system prompt and history limit
 		const messages = prepareMessages(history);
 
-		// Wrap model with devtools middleware for debugging
+		// Wrap model with devtools middleware for debugging in non-production only.
+		// Lazy-import the devtools module so it's not bundled/imported in production builds.
+		const IS_PROD = env.NODE_ENV === "production" || process.env.BUN_ENV === "production";
+
+		let middleware: any | undefined;
+		if (!IS_PROD) {
+			try {
+				const devtools = await import("@ai-sdk/devtools");
+				middleware = typeof devtools.devToolsMiddleware === "function" ? devtools.devToolsMiddleware() : undefined;
+			} catch (err) {
+				console.warn("Could not load @ai-sdk/devtools (dev-only). Continuing without it.", err);
+			}
+		}
+
+		const middlewareToUse = middleware ?? [];
+
 		const model = wrapLanguageModel({
 			model: openai(LLM_CONFIG.model),
-			middleware: devToolsMiddleware(),
+			middleware: middlewareToUse,
 		});
 
 		// Store callbacks to be invoked when streaming completes
