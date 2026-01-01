@@ -2,8 +2,10 @@ import { config } from "dotenv";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { PrismaClient } from "./generated/client.js";
 
-// Load environment variables from .env file
-config({ path: "../../apps/server/.env" });
+// Load environment variables from .env file in non-production only.
+if (process.env.NODE_ENV !== "production") {
+	config({ path: "../../apps/server/.env" });
+}
 
 // Check for DATABASE_URL
 if (!process.env.DATABASE_URL) {
