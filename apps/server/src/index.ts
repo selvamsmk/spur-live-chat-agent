@@ -1,7 +1,7 @@
 import { env } from "@spur-live-chat-agent/env/server";
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
-import { serveStatic } from '@hono/node-server/serve-static'
+import { serveStatic } from "@hono/node-server/serve-static";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { registerApiRoutes } from "./api";
@@ -11,51 +11,82 @@ import path from "path";
 
 const app = new Hono();
 
+/* ----------------------------- Global middleware ---------------------------- */
+
 app.use(logger());
+
 app.use(
-	"/*",
-	cors({
-		origin: env.CORS_ORIGIN || "",
-		allowMethods: ["GET", "POST", "OPTIONS"],
-	}),
+  "/*",
+  cors({
+    origin: env.CORS_ORIGIN || "*",
+    allowMethods: ["GET", "POST", "OPTIONS"],
+  })
 );
+
+/* -------------------------------- API routes -------------------------------- */
 
 registerApiRoutes(app);
 
-const IS_PROD = process.env.BUN_ENV === "production" || process.env.NODE_ENV === "production";
+/* ----------------------------- Production setup ------------------------------ */
+
+const IS_PROD =
+  process.env.BUN_ENV === "production" ||
+  process.env.NODE_ENV === "production";
 
 if (IS_PROD) {
-	const distDir = new URL("../../web/dist/", import.meta.url).pathname;
+  const distDir = new URL("../../web/dist/", import.meta.url).pathname;
 
-	// Serve static assets (Vite default puts assets under /assets)
-	app.use("/assets/*", serveStatic({ root: distDir }));
+  /* ---------------------------- Static assets ---------------------------- */
 
-	// Favicon
-	app.get("/favicon.ico", serveStatic({ path: path.join(distDir, "favicon.ico") }));
+  app.use("/assets/*", serveStatic({ root: distDir }));
 
-	const indexHtmlPath = path.join(distDir, "index.html");
+  app.get(
+    "/favicon.ico",
+    serveStatic({ path: path.join(distDir, "favicon.ico") })
+  );
 
-	const serveIndex = async (c: any) => {
-		try {
-			if (fs.existsSync(indexHtmlPath) && fs.statSync(indexHtmlPath).isFile()) {
-				const content = await fs.promises.readFile(indexHtmlPath, "utf8");
-				return c.html(content);
-			}
-			return c.text("Not found", 404);
-		} catch (err) {
-			return c.text(`Server error - ${err}`, 500);
-		}
-	};
+  /* ----------------------------- SPA fallback ----------------------------- */
 
-	app.get("/", serveIndex);
-	app.get("/*", serveIndex);
+  const indexHtmlPath = path.join(distDir, "index.html");
+
+  const serveIndex = async (c: any) => {
+    try {
+      const html = await fs.promises.readFile(indexHtmlPath, "utf8");
+      return c.html(html);
+    } catch (err) {
+      console.error("Failed to serve index.html", err);
+      return c.text("Internal Server Error", 500);
+    }
+  };
+
+  // IMPORTANT:
+  // - Let /api/* pass through
+  // - Let /assets/* and files pass through
+  // - Everything else → index.html (TanStack Router)
+  app.get("*", async (c, next) => {
+    const pathname = c.req.path;
+
+    if (
+      pathname.startsWith("/api") ||
+      pathname.startsWith("/assets") ||
+      pathname.includes(".")
+    ) {
+      return next();
+    }
+
+    return serveIndex(c);
+  });
 } else {
-	// dev / non-prod behavior
-	app.get("/", (c) => c.text("OK"));
+  /* ------------------------------ Dev fallback ------------------------------ */
+  app.get("/", (c) => c.text("OK"));
 }
 
-// Load FAQs into memory before starting the server
+/* ---------------------------- Startup sequence ------------------------------- */
+
+// Load FAQs into memory before accepting traffic
 await loadStoreFaqs();
+
+/* ----------------------------- Start server ---------------------------------- */
 
 const PORT = Number(process.env.PORT) || 3000;
 
@@ -66,6 +97,6 @@ serve(
     hostname: "0.0.0.0",
   },
   (info) => {
-    console.log(`Server is running on http://0.0.0.0:${info.port}`);
+    console.log(`Server running on http://0.0.0.0:${info.port}`);
   }
 );
