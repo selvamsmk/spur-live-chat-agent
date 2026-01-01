@@ -21,4 +21,15 @@ export default defineConfig({
 		port: 3001,
 		allowedHosts: ["web-production-86f7f.up.railway.app"],
 	},
+	build: {
+		rollupOptions: {
+			output: {
+				// Force single JS bundle
+				manualChunks: () => "app",
+				entryFileNames: "assets/app.js",
+				chunkFileNames: "assets/app.js",
+				assetFileNames: "assets/[name][extname]",
+			},
+		},
+  	},
 });
